@@ -7,6 +7,7 @@ export type PlanTier = "amateur" | "semi_pro" | "pro"
 export type PlanFeature =
   | "video_analysis_minutes" | "extra_team" | "season_archive"
   | "cotisations" | "medical" | "multi_admin" | "pdf_export" | "session_template"
+  | "tactical_analysis_requests"
 
 export interface EffectiveLimit {
   maxValue: number | null            // null = illimité

@@ -42,3 +42,35 @@ export async function checkVideoAnalysisQuota(
   }
   return { ok: true, used, limit: maxValue }
 }
+
+// Analyses tactiques déjà effectuées cette semaine (comptage des lignes tactical_situations —
+// les hits de cache n'insèrent pas de nouvelle ligne donc ne comptent pas dans le quota).
+export async function getTacticalAnalysesThisWeek(scope: ClubScopeLite): Promise<number> {
+  const since = startOfIsoWeek().toISOString()
+  const { count } = await supabase
+    .from("tactical_situations")
+    .select("id", { count: "exact", head: true })
+    .eq(scope.column, scope.value)
+    .gte("created_at", since)
+  return count ?? 0
+}
+
+// Vérifie qu'une nouvelle analyse tactique reste sous le quota hebdo du club (garde-fou coût
+// Claude + embedding Gemini, cf. supabase-migration-tactical-analysis-quota.sql).
+export async function checkTacticalAnalysisQuota(
+  scope: ClubScopeLite,
+  clubId: string,
+): Promise<{ ok: true; used: number; limit: number | null } | { ok: false; error: string; used: number; limit: number }> {
+  const { maxValue } = await getEffectiveLimit(clubId, "tactical_analysis_requests")
+  const used = await getTacticalAnalysesThisWeek(scope)
+  if (maxValue === null) return { ok: true, used, limit: null } // illimité (Pro / override)
+
+  if (used >= maxValue) {
+    return {
+      ok: false,
+      error: `Quota d'analyses tactiques atteint (${maxValue}/semaine). Il renouvelle lundi prochain.`,
+      used, limit: maxValue,
+    }
+  }
+  return { ok: true, used, limit: maxValue }
+}
