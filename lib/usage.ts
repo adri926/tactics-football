@@ -7,6 +7,7 @@ export type UsageEventType =
   | "board_created" | "session_created" | "player_added" | "fee_updated"
   | "login" | "signup" | "pdf_export" | "session_template_created"
   | "video_analysis" | "video_analysis_blocked"
+  | "tactical_analysis" | "tactical_analysis_blocked"
   | "second_team_blocked" | "cotisations_blocked" | "archive_blocked"
   | "pdf_export_blocked" | "template_blocked"
 

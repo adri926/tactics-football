@@ -9,6 +9,8 @@ import DrawingCanvas, { type Tool } from "./DrawingCanvas"
 import Toolbar from "./Toolbar"
 import PitchControlOverlay from "./PitchControlOverlay"
 import PitchControlPanel from "./PitchControlPanel"
+import TacticalAnalysisPanel from "./TacticalAnalysisPanel"
+import TacticalSearchPanel from "./TacticalSearchPanel"
 import { FORMATIONS, mirrorY } from "@/lib/formations"
 import {
   computePitchControl, surfaceControlPercent, detectOverloadZones,
@@ -16,6 +18,7 @@ import {
   type PitchControlGrid, type PlayerPosition, type OverloadZone,
 } from "@/lib/tactics/pitch-control"
 import { saveTacticalBoard, updateTacticalBoard, createShareLink } from "@/app/tactique/digiboard/actions"
+import { analyzeTacticalSituation, type AnalyzeResult } from "@/app/tactique/digiboard/tactics-actions"
 import type { Drawing, Pion, TacticalBoard, TacticalMode, TacticalTeam } from "@/types/tactical"
 
 const PITCH_CONTROL_DEBOUNCE_MS = 180
@@ -170,6 +173,12 @@ export default function Paperboard({ initialBoards = [] }: Props) {
   const [pitchControlZones, setPitchControlZones] = useState<OverloadZone[]>([])
   const pitchControlTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Analyse IA — déclenchée uniquement par le bouton (jamais sur auto-save, coût API)
+  const [analysisStatus, setAnalysisStatus] = useState<"idle" | "loading" | "ok" | "error">("idle")
+  const [analysisResult, setAnalysisResult] = useState<AnalyzeResult | null>(null)
+  const [analysisError, setAnalysisError] = useState("")
+  const [phaseOfPlay, setPhaseOfPlay] = useState("")
+
   // Outils de dessin
   const [tool, setTool] = useState<Tool>("curseur")
   const [color, setColor] = useState(DEFAULT_COLOR)
@@ -192,7 +201,7 @@ export default function Paperboard({ initialBoards = [] }: Props) {
   const [isSharing, startShare] = useTransition()
 
   // Vue sidebar
-  const [sidebarView, setSidebarView] = useState<"edit" | "boards">("edit")
+  const [sidebarView, setSidebarView] = useState<"edit" | "boards" | "situations">("edit")
 
   // Panneau latéral repliable + bandeau orientation (mobile uniquement)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
@@ -322,6 +331,20 @@ export default function Paperboard({ initialBoards = [] }: Props) {
       setSaveError(result.error)
     }
   }, [boardName, formationA, formationB, pions, drawings, mode])
+
+  const handleAnalyze = useCallback(async () => {
+    setAnalysisStatus("loading")
+    const result = await analyzeTacticalSituation({
+      pions, ball, attackingTeam: "A", phaseOfPlay: phaseOfPlay || undefined,
+    })
+    if (result.ok) {
+      setAnalysisResult(result.result)
+      setAnalysisStatus("ok")
+    } else {
+      setAnalysisError(result.error)
+      setAnalysisStatus("error")
+    }
+  }, [pions, ball, phaseOfPlay])
 
   const loadBoard = useCallback((board: TacticalBoard) => {
     const isDirty = drawings.length > 0 || boardName.trim() !== ""
@@ -490,9 +513,9 @@ export default function Paperboard({ initialBoards = [] }: Props) {
           </p>
         </div>
 
-        {/* Toggle ÉDITER / MES BOARDS */}
+        {/* Toggle ÉDITER / MES BOARDS / SITUATIONS */}
         <div style={{ display: "flex", borderRadius: 8, overflow: "hidden", border: "1px solid rgba(122,154,130,0.15)" }}>
-          {(["edit", "boards"] as const).map(v => (
+          {(["edit", "boards", "situations"] as const).map(v => (
             <button key={v} onClick={() => setSidebarView(v)} style={{
               flex: 1, padding: "7px 0", cursor: "pointer", border: "none",
               fontFamily: "var(--font-mono), monospace",
@@ -501,13 +524,15 @@ export default function Paperboard({ initialBoards = [] }: Props) {
               color: sidebarView === v ? "#7A9A82" : "rgba(255,255,255,0.25)",
               transition: "all 0.15s",
             }}>
-              {v === "edit" ? "ÉDITER" : `MES BOARDS${initialBoards.length > 0 ? ` (${initialBoards.length})` : ""}`}
+              {v === "edit" ? "ÉDITER" : v === "boards" ? `MES BOARDS${initialBoards.length > 0 ? ` (${initialBoards.length})` : ""}` : "SITUATIONS"}
             </button>
           ))}
         </div>
 
         {sidebarView === "boards" ? (
           <BoardsList boards={initialBoards} onLoad={loadBoard} />
+        ) : sidebarView === "situations" ? (
+          <TacticalSearchPanel />
         ) : (
           <>
 
@@ -641,6 +666,17 @@ export default function Paperboard({ initialBoards = [] }: Props) {
             </button>
           )}
         </div>
+
+        <div style={{ height: 1, backgroundColor: "rgba(122,154,130,0.12)" }} />
+
+        <TacticalAnalysisPanel
+          status={analysisStatus}
+          result={analysisResult}
+          error={analysisError}
+          phaseOfPlay={phaseOfPlay}
+          onPhaseOfPlayChange={setPhaseOfPlay}
+          onAnalyze={handleAnalyze}
+        />
 
           </>
         )}
