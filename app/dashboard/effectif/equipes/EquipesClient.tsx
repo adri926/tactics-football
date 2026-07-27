@@ -173,7 +173,7 @@ function TeamCard({ team, players, canDelete }: {
 
   return (
     <div style={SECTION}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div className="card-row">
         {editing ? (
           <input
             autoFocus
@@ -197,6 +197,7 @@ function TeamCard({ team, players, canDelete }: {
           </p>
         )}
 
+        <div className="card-row__actions">
         <span style={{
           fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 700,
           letterSpacing: "0.08em", color: "rgba(122,154,130,0.6)",
@@ -226,6 +227,7 @@ function TeamCard({ team, players, canDelete }: {
             SUPPRIMER
           </button>
         )}
+        </div>
       </div>
 
       {error && (

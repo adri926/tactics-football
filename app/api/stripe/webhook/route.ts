@@ -24,9 +24,15 @@ export async function POST(req: NextRequest) {
     const session = event.data.object as Stripe.Checkout.Session
     const clubId  = session.metadata?.club_id
     if (clubId) {
+      // [Backoffice — Phase 0] Modèle amateur/semi_pro/pro (le tier 9€ = semi_pro).
       await supabase
         .from("subscriptions")
-        .upsert({ club_id: clubId, plan: "club", status: "active", stripe_subscription_id: session.subscription as string }, { onConflict: "club_id" })
+        .upsert({
+          club_id: clubId, plan: "semi_pro", status: "active",
+          provider: "stripe",
+          provider_subscription_id: session.subscription as string,
+          stripe_subscription_id: session.subscription as string,
+        }, { onConflict: "club_id" })
     }
   }
 
@@ -36,7 +42,11 @@ export async function POST(req: NextRequest) {
     if (clubId) {
       await supabase
         .from("subscriptions")
-        .update({ plan: "solo", status: "cancelled", stripe_subscription_id: null })
+        .update({
+          plan: "amateur", status: "canceled",
+          canceled_at: new Date().toISOString(),
+          provider_subscription_id: null, stripe_subscription_id: null,
+        })
         .eq("club_id", clubId)
     }
   }

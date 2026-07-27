@@ -8,6 +8,7 @@ const isPublic = createRouteMatcher([
   "/invitation(.*)",
   "/tactique(.*)",
   "/api/webhook(.*)",
+  "/api/cron(.*)",
   "/icon",
   "/apple-icon",
   "/icon-192",

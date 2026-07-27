@@ -1,5 +1,6 @@
 import { SignUp } from "@clerk/nextjs"
 import FootboardMark from "@/components/FootboardMark"
+import AttributionTracker from "@/components/AttributionTracker"
 
 export default function SignUpPage() {
   return (
@@ -13,6 +14,7 @@ export default function SignUpPage() {
       gap: 32,
       padding: "24px 16px",
     }}>
+      <AttributionTracker />
 
       {/* Logo + titre */}
       <div style={{ textAlign: "center" }}>

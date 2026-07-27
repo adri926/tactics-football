@@ -124,6 +124,56 @@ export function playerInviteTemplate(d: PlayerInviteEmailData): { subject: strin
   }
 }
 
+// [Backoffice — Phase 0] Digest hebdo envoyé à l'owner (lundi). Agrège l'activité de la semaine +
+// le coût IA cumulé. Aucun email n'est envoyé au client en Phase 0 — c'est une remontée interne.
+export interface AdminDigestData {
+  weekLabel:    string
+  signups:      number
+  mrr:          number
+  arr:          number
+  churn30d:     number
+  blockedCount: number
+  aiCostWeek:   number
+  aiMinutesWeek: number
+  toContactUrl: string
+}
+
+function eur(n: number): string {
+  return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n)
+}
+
+export function adminDigestTemplate(d: AdminDigestData): { subject: string; html: string } {
+  const row = (label: string, value: string) => `
+    <tr>
+      <td style="padding:10px 0;border-bottom:1px solid #2a2a40;color:#aaa;font-size:14px;">${label}</td>
+      <td style="padding:10px 0;border-bottom:1px solid #2a2a40;color:#fff;font-size:16px;font-weight:700;text-align:right;">${value}</td>
+    </tr>`
+
+  return {
+    subject: `[Footboard Admin] Digest hebdo — ${d.weekLabel}`,
+    html: emailLayout(`
+      <h1 style="margin:0 0 8px;font-size:24px;font-weight:800;color:#fff;">Digest hebdo</h1>
+      <p style="margin:0 0 24px;color:#aaa;">${d.weekLabel}</p>
+
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+        ${row("Nouveaux signups (7 j)", String(d.signups))}
+        ${row("MRR", eur(d.mrr))}
+        ${row("ARR", eur(d.arr))}
+        ${row("Churn (30 j)", String(d.churn30d))}
+        ${row("Limites atteintes (7 j)", String(d.blockedCount))}
+        ${row("Coût IA vidéo (7 j)", `${eur(d.aiCostWeek)} · ${Math.round(d.aiMinutesWeek)} min`)}
+      </table>
+
+      <div style="text-align:center;margin-bottom:8px;">
+        <a href="${d.toContactUrl}" style="display:inline-block;background:#7A9A82;color:#17160f;font-weight:800;text-decoration:none;padding:14px 28px;border-radius:10px;">
+          Voir « À contacter »
+        </a>
+      </div>
+      <p style="margin:16px 0 0;color:#888;font-size:13px;">Remontée interne — aucun email n'a été envoyé aux clients.</p>
+    `),
+  }
+}
+
 // ─── Layout commun ────────────────────────────────────────────
 
 function emailLayout(content: string): string {

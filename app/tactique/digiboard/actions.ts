@@ -4,6 +4,7 @@ import { dbError } from "@/lib/db-error"
 import { auth } from "@clerk/nextjs/server"
 import { z } from "zod"
 import { supabase } from "@/lib/supabase"
+import { logUsageForCurrentClub } from "@/lib/usage"
 import { randomUUID } from "crypto"
 import type { TacticalBoard } from "@/types/tactical"
 
@@ -58,6 +59,7 @@ export async function saveTacticalBoard(
     .single()
 
   if (error || !row) return { ok: false, error: error?.message ?? "Erreur d'enregistrement." }
+  await logUsageForCurrentClub("board_created", { board_id: row.id, mode: data.mode }) // [Backoffice — Phase 0]
   return { ok: true, id: row.id as string }
 }
 

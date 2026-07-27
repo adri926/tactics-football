@@ -165,8 +165,7 @@ function FeeRow({ player }: { player: PlayerFee }) {
   const canRemind = (player.status === "unpaid" || player.status === "partial") && !!player.email
 
   return (
-    <div style={{
-      display: "flex", alignItems: "center", gap: 12,
+    <div className="card-row" style={{
       padding: "10px 12px", borderRadius: 8,
       backgroundColor: "rgba(255,255,255,0.02)",
       border: "1px solid rgba(122,154,130,0.06)",
@@ -181,6 +180,7 @@ function FeeRow({ player }: { player: PlayerFee }) {
           </p>
         )}
       </div>
+      <div className="card-row__actions">
       <div>
         <label style={LABEL}>Dû</label>
         <input
@@ -223,6 +223,7 @@ function FeeRow({ player }: { player: PlayerFee }) {
       }}>
         {pending ? "..." : "OK"}
       </button>
+      </div>
     </div>
   )
 }

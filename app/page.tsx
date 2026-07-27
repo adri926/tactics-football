@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { auth } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
+import AttributionTracker from "@/components/AttributionTracker"
 import HeroPitch from "@/components/HeroPitch"
 import PricingCard from "@/components/home/PricingCard"
 import AiLoopSection from "@/components/home/AiLoopSection"
@@ -136,6 +137,7 @@ export default async function Home() {
 
   return (
     <main style={{ background: "var(--bg)", color: "rgba(255,255,255,0.92)" }}>
+      <AttributionTracker />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }}

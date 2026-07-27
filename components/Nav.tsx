@@ -44,7 +44,7 @@ const NAV: NavItem[] = [
 ]
 
 const HIDE_ON = ["/tactique/digiboard"]
-const HIDE_ON_PREFIXES = ["/dashboard", "/joueur"]
+const HIDE_ON_PREFIXES = ["/dashboard", "/joueur", "/admin"]
 
 export default function Nav() {
   const pathname = usePathname()

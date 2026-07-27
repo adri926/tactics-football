@@ -231,7 +231,7 @@ export default function TactiquePage() {
         <div style={{ height: 1, background: "rgba(122,154,130,0.10)", margin: "28px 0" }} />
 
         {/* Grille secondaire */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
+        <div className="grid-2" style={{ gap: 12 }}>
           {SECONDARY.map(({ num, tag, title, desc, href, cta, icon }) => (
             <Link key={href} href={href} style={{ textDecoration: "none", display: "block" }}>
               <div style={{

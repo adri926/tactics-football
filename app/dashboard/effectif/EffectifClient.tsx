@@ -226,13 +226,12 @@ export default function EffectifClient({ players }: Props) {
 
             <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
               {group.map(p => (
-                <div key={p.id} style={{
-                  display: "flex", alignItems: "center",
+                <div key={p.id} className="card-row" style={{
                   padding: "11px 16px", borderRadius: 10,
                   backgroundColor: "var(--bg-card)",
                   border: "1px solid rgba(122,154,130,0.08)",
-                  gap: 14,
                 }}>
+                  <div className="card-row__main">
                   {/* Numéro */}
                   <span style={{
                     fontFamily: "var(--font-display), system-ui, sans-serif",
@@ -262,7 +261,9 @@ export default function EffectifClient({ players }: Props) {
                       </p>
                     )}
                   </Link>
+                  </div>
 
+                  <div className="card-row__actions">
                   {/* Stats */}
                   <div style={{ display: "flex", gap: 18 }}>
                     {[
@@ -320,6 +321,7 @@ export default function EffectifClient({ players }: Props) {
                     >
                       ✕
                     </button>
+                  </div>
                   </div>
                 </div>
               ))}

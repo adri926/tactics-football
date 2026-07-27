@@ -6,8 +6,23 @@ import { revalidatePath } from "next/cache"
 import { Resend } from "resend"
 import { supabase } from "@/lib/supabase"
 import { getClubScope } from "@/lib/scope"
+import { logUsage } from "@/lib/usage"
+import { getEffectiveLimit } from "@/lib/plan"
 import { requireFeesAccess, getMyClub } from "@/app/dashboard/club/actions"
 import { CURRENT_SEASON } from "./constants"
+
+// [Backoffice — Phase 0] Gate freemium : la gestion des cotisations est une feature Pro.
+// En plus du contrôle de rôle (requireFeesAccess), on vérifie le plan sur les écritures.
+async function requireCotisationsPlan(): Promise<{ ok: true; clubId: string } | { ok: false; error: string }> {
+  const club = await getMyClub()
+  if (!club) return { ok: false, error: "Club introuvable." }
+  const { maxValue } = await getEffectiveLimit(club.id, "cotisations")
+  if (maxValue === 0) {
+    await logUsage({ clubId: club.id, eventType: "cotisations_blocked" })
+    return { ok: false, error: "La gestion des cotisations est réservée à Footboard Pro." }
+  }
+  return { ok: true, clubId: club.id }
+}
 
 // Null-safe : Resend throw sans clé → ne pas instancier au chargement (casserait `next build`).
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -97,6 +112,8 @@ export async function setFee(
   raw: unknown
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   await requireFeesAccess()
+  const gate = await requireCotisationsPlan()
+  if (!gate.ok) return gate
   const scope = await getClubScope()
 
   const parsed = FeeSchema.safeParse(raw)
@@ -117,6 +134,7 @@ export async function setFee(
     }, { onConflict: "player_id,season" })
 
   if (error) return dbError(error)
+  await logUsage({ clubId: gate.clubId, userId: scope.userId, eventType: "fee_updated", metadata: { scope: "single", amount_due: amountDue } }) // [Backoffice — Phase 0]
   revalidatePath("/dashboard/club/cotisations")
   return { ok: true }
 }
@@ -199,6 +217,8 @@ export async function applyFeeToAll(
   raw: unknown
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   await requireFeesAccess()
+  const gate = await requireCotisationsPlan()
+  if (!gate.ok) return gate
   const scope = await getClubScope()
 
   const parsed = DefaultFeeSchema.safeParse(raw)
@@ -240,6 +260,7 @@ export async function applyFeeToAll(
     .upsert(rows, { onConflict: "player_id,season" })
 
   if (error) return dbError(error)
+  await logUsage({ clubId: gate.clubId, userId: scope.userId, eventType: "fee_updated", metadata: { scope: "all", amount_due: parsed.data.amountDue, players: rows.length } }) // [Backoffice — Phase 0]
   revalidatePath("/dashboard/club/cotisations")
   return { ok: true }
 }

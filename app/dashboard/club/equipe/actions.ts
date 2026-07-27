@@ -3,7 +3,7 @@
 import { auth, clerkClient } from "@clerk/nextjs/server"
 import { z } from "zod"
 import { revalidatePath } from "next/cache"
-import { getClubPlan } from "@/app/dashboard/club/actions"
+import { getClubPlan, type SubscriptionPlan } from "@/app/dashboard/club/actions"
 import { INVITABLE_ROLES } from "./roles"
 
 export interface TeamMember {
@@ -22,7 +22,7 @@ export interface TeamInvitation {
 
 export interface TeamData {
   orgId:       string | null
-  plan:        "solo" | "club"
+  plan:        SubscriptionPlan
   isAdmin:     boolean
   members:     TeamMember[]
   invitations: TeamInvitation[]
@@ -79,8 +79,9 @@ export async function inviteMember(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const { userId, orgId } = await requireOrgAdmin()
 
+  // [Backoffice — Phase 0] Multi-comptes admin = feature Pro.
   const plan = await getClubPlan()
-  if (plan !== "club") return { ok: false, error: "Passe à Footboard Club pour inviter des membres." }
+  if (plan !== "pro") return { ok: false, error: "Passe à Footboard Pro pour inviter des membres." }
 
   const parsed = InviteSchema.safeParse(raw)
   if (!parsed.success) return { ok: false, error: "Données invalides." }

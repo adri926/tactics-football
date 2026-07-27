@@ -6,8 +6,8 @@ import UpgradeButton from "@/components/dashboard/UpgradeButton"
 
 const PLANS = [
   {
-    id: "solo",
-    label: "Solo",
+    id: "amateur",
+    label: "Amateur",
     price: "Gratuit",
     features: [
       "1 coach",
@@ -20,11 +20,11 @@ const PLANS = [
     ],
   },
   {
-    id: "club",
-    label: "Club",
+    id: "semi_pro",
+    label: "Semi-pro",
     price: "9€ / mois",
     features: [
-      "Tout du plan Solo",
+      "Tout du plan Amateur",
       "Multi-coachs (staff illimité)",
       "Rôles & permissions (admin, adjoint…)",
       "Gestion multi-équipes avancée",
@@ -37,19 +37,20 @@ export default async function AbonnementPage() {
   const { userId } = await auth()
   if (!userId) redirect("/sign-in")
 
-  const plan    = await getClubPlan()
-  const isClub  = plan === "club"
-  const stripe  = !!process.env.STRIPE_SECRET_KEY
+  const plan     = await getClubPlan()
+  const isPaying = plan !== "amateur"
+  const stripe   = !!process.env.STRIPE_SECRET_KEY
+  const planLabel = plan === "amateur" ? "Amateur" : plan === "semi_pro" ? "Semi-pro" : "Pro"
 
   return (
     <div className="page-pad" style={{ maxWidth: 760 }}>
       <PageHeader
         label="Paramètres"
         title="Abonnement"
-        subtitle={`Plan actuel : ${isClub ? "Club" : "Solo"}`}
+        subtitle={`Plan actuel : ${planLabel}`}
       />
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 32 }}>
+      <div className="grid-2" style={{ gap: 16, marginBottom: 32 }}>
         {PLANS.map(p => {
           const active = p.id === plan
           return (
@@ -101,7 +102,7 @@ export default async function AbonnementPage() {
         })}
       </div>
 
-      {!isClub && (
+      {!isPaying && (
         <div style={{
           padding: "20px 24px", borderRadius: 12,
           backgroundColor: "var(--bg-card)",
@@ -113,7 +114,7 @@ export default async function AbonnementPage() {
             fontSize: 9, fontWeight: 700, letterSpacing: "0.12em",
             color: "rgba(122,154,130,0.5)", textTransform: "uppercase", marginBottom: 10,
           }}>
-            Passer au plan Club
+            Passer à un plan payant
           </p>
           {stripe ? (
             <UpgradeButton />
@@ -128,7 +129,7 @@ export default async function AbonnementPage() {
         </div>
       )}
 
-      {isClub && (
+      {isPaying && (
         <p style={{
           fontFamily: "var(--font-body), sans-serif",
           fontSize: 13, color: "rgba(255,255,255,0.3)", lineHeight: 1.6,

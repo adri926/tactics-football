@@ -2,10 +2,12 @@
 
 import { dbError } from "@/lib/db-error"
 import { auth, clerkClient } from "@clerk/nextjs/server"
+import { cookies } from "next/headers"
 import { z } from "zod"
 import { revalidatePath } from "next/cache"
 import { supabase } from "@/lib/supabase"
 import { getClubScope } from "@/lib/scope"
+import { logUsage } from "@/lib/usage"
 
 export interface Club {
   id:         string
@@ -47,19 +49,23 @@ export async function getMyClub(): Promise<Club | null> {
   return data ?? null
 }
 
-export type SubscriptionPlan = "solo" | "club"
+// [Backoffice — Phase 0] Modèle de plans canonique amateur/semi_pro/pro.
+export type SubscriptionPlan = "amateur" | "semi_pro" | "pro"
 
 export async function getClubPlan(): Promise<SubscriptionPlan> {
   const club = await getMyClub()
-  if (!club) return "solo"
+  if (!club) return "amateur"
 
   const { data } = await supabase
     .from("subscriptions")
-    .select("plan")
+    .select("plan, status")
     .eq("club_id", club.id)
-    .single()
+    .maybeSingle()
 
-  return (data?.plan as SubscriptionPlan) ?? "solo"
+  const plan = data?.plan as SubscriptionPlan | undefined
+  if (!plan) return "amateur"
+  if (data?.status && !["active", "trialing"].includes(data.status)) return "amateur"
+  return plan
 }
 
 export async function requireFeesAccess(): Promise<void> {
@@ -90,11 +96,22 @@ export async function createClub(
     orgId = org.id
   }
 
-  const { error } = await supabase
+  const { data: created, error } = await supabase
     .from("clubs")
     .insert({ ...parsed.data, owner_id: userId, org_id: orgId })
+    .select("id")
+    .single()
 
   if (error) return dbError(error)
+
+  // [Backoffice — Phase 0] Signup + attribution (UTM/referrer captés par AttributionTracker).
+  let attribution: Record<string, unknown> | null = null
+  try {
+    const raw = (await cookies()).get("fb_attribution")?.value
+    if (raw) attribution = JSON.parse(decodeURIComponent(raw))
+  } catch { /* cookie absent ou malformé : signup sans attribution */ }
+  await logUsage({ clubId: created?.id ?? null, userId, eventType: "signup", metadata: { attribution } })
+
   revalidatePath("/dashboard")
   return { ok: true, orgId }
 }

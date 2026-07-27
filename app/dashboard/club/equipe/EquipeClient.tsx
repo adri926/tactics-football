@@ -68,7 +68,7 @@ export default function EquipeClient({ data }: Props) {
     <div className="page-pad" style={{ maxWidth: 680 }}>
       <PageHeader label="Mon club" title="Équipe" subtitle="Donne accès à la plateforme aux membres du club (coach adjoint, trésorier)." />
 
-      {data.plan === "solo" && (
+      {data.plan !== "pro" && (
         <div style={{ ...SECTION, textAlign: "center", padding: "36px 28px" }}>
           <p style={{
             fontFamily: "var(--font-mono), monospace",
@@ -103,7 +103,7 @@ export default function EquipeClient({ data }: Props) {
         </div>
       )}
 
-      {data.plan === "club" && (
+      {data.plan === "pro" && (
         <>
           {data.isAdmin && (
             <div style={{ ...SECTION, marginBottom: 16 }}>

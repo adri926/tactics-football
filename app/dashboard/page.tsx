@@ -119,7 +119,7 @@ export default async function DashboardPage({
       />
 
       {/* 2 columns */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
+      <div className="grid-2" style={{ gap: 20, marginBottom: 20 }}>
 
         {/* Santé effectif */}
         <div style={{
@@ -293,7 +293,7 @@ export default async function DashboardPage({
             Aucune séance enregistrée.
           </p>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
+          <div className="grid-2" style={{ gap: 10 }}>
             {lastTrainings.map(t => {
               const color = t.type ? (TYPE_COLORS[t.type] ?? "#7A9A82") : "#7A9A82"
               const typeLabel = t.type ? (TRAINING_TYPES.find(x => x.value === t.type)?.label ?? t.type) : null

@@ -6,6 +6,14 @@ import { revalidatePath } from "next/cache"
 import { supabase } from "@/lib/supabase"
 import { getClubScope } from "@/lib/scope"
 import { getActiveTeam } from "@/lib/teams"
+import { logUsageForCurrentClub } from "@/lib/usage"
+
+// [Backoffice — Phase 0] Feuille de match imprimée. Aujourd'hui = window.print() (pas de vrai
+// export généré) → on logge l'usage `pdf_export`, mais le quota n'est PAS encore enforçable
+// tant qu'il n'existe pas d'export réel (cf. BACKOFFICE.md, périmètre différé).
+export async function logPrint(matchId?: string): Promise<void> {
+  await logUsageForCurrentClub("pdf_export", { source: "match_preparation", match_id: matchId ?? null })
+}
 
 export interface Match {
   id:           string

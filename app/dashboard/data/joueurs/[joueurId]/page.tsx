@@ -122,13 +122,12 @@ export default async function ProfilStatsPage({ params }: Props) {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {history.map(h => (
-              <Link key={h.match.id} href={`/dashboard/matchs/${h.match.id}/bilan`} style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
+              <Link key={h.match.id} href={`/dashboard/matchs/${h.match.id}/bilan`} className="card-row" style={{
                 padding: "9px 12px", borderRadius: 8, textDecoration: "none",
                 backgroundColor: "rgba(255,255,255,0.02)",
                 border: "1px solid rgba(122,154,130,0.06)",
               }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div className="card-row__main">
                   <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, color: "rgba(255,255,255,0.25)", width: 44 }}>
                     {formatDate(h.match.date)}
                   </span>
@@ -142,7 +141,7 @@ export default async function ProfilStatsPage({ params }: Props) {
                     {h.role === "starter" ? "TITU" : "REMP"}
                   </span>
                 </div>
-                <div style={{ display: "flex", gap: 14 }}>
+                <div className="card-row__actions">
                   {h.goals > 0 && <span style={statTag("#7A9A82")}>⚽ {h.goals}</span>}
                   {h.assists > 0 && <span style={statTag("rgba(255,255,255,0.5)")}>🅰 {h.assists}</span>}
                   {h.yellowCards > 0 && <span style={statTag("#d4a847")}>🟨 {h.yellowCards}</span>}

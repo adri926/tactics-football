@@ -7,6 +7,9 @@ import { cookies } from "next/headers"
 import { supabase } from "@/lib/supabase"
 import { getClubScope } from "@/lib/scope"
 import { getClubTeams, ACTIVE_TEAM_COOKIE } from "@/lib/teams"
+import { getMyClub } from "@/app/dashboard/club/actions"
+import { getEffectiveLimit } from "@/lib/plan"
+import { logUsage } from "@/lib/usage"
 
 export interface TeamWithPlayers {
   id:        string
@@ -63,6 +66,20 @@ export async function createTeam(
 
   const parsed = NameSchema.safeParse(name)
   if (!parsed.success) return { ok: false, error: "Nom invalide." }
+
+  // [Backoffice — Phase 0] Enforcement freemium : plafond de groupes/équipes selon le plan.
+  // extra_team = équipes AU-DELÀ de la première ; max total = extra_team + 1 (null = illimité).
+  const club = await getMyClub()
+  if (club) {
+    const { maxValue } = await getEffectiveLimit(club.id, "extra_team")
+    if (maxValue !== null) {
+      const existing = await getClubTeams(scope)
+      if (existing.length >= maxValue + 1) {
+        await logUsage({ clubId: club.id, userId: scope.userId, eventType: "second_team_blocked", metadata: { current_teams: existing.length, limit: maxValue + 1 } })
+        return { ok: false, error: "Ton plan ne permet qu'une seule équipe. Passe à un plan supérieur pour gérer plusieurs groupes." }
+      }
+    }
+  }
 
   const { error } = await supabase
     .from("teams")

@@ -4,6 +4,7 @@ import { dbError } from "@/lib/db-error"
 import { revalidatePath } from "next/cache"
 import { supabase } from "@/lib/supabase"
 import { getClubScope } from "@/lib/scope"
+import { logUsageForCurrentClub } from "@/lib/usage"
 import type { SessionType } from "@/types/training"
 
 interface BlockInput {
@@ -65,6 +66,7 @@ export async function saveSession(
     return dbError(blocksErr)
   }
 
+  await logUsageForCurrentClub("session_created", { session_id: session.id, blocks: input.blocks.length }) // [Backoffice — Phase 0]
   revalidatePath("/dashboard/entrainements")
   return { ok: true, sessionId: session.id }
 }

@@ -5,6 +5,7 @@ import { z } from "zod"
 import { revalidatePath } from "next/cache"
 import { supabase } from "@/lib/supabase"
 import { getClubScope } from "@/lib/scope"
+import { logUsageForCurrentClub } from "@/lib/usage"
 import { getActiveTeam } from "@/lib/teams"
 import type { TrainingType } from "@/lib/training-types"
 
@@ -56,6 +57,7 @@ export async function createTraining(
     .insert({ ...parsed.data, owner_id: scope.userId, org_id: scope.orgId, team_id: team.id })
 
   if (error) return dbError(error)
+  await logUsageForCurrentClub("session_created", { kind: "training", team_id: team.id }) // [Backoffice — Phase 0]
   revalidatePath("/dashboard/entrainements")
   return { ok: true }
 }

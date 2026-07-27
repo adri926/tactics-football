@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react"
 import Link from "next/link"
-import { saveLineup } from "@/app/dashboard/matchs/actions"
+import { saveLineup, logPrint } from "@/app/dashboard/matchs/actions"
 import type { Match } from "@/app/dashboard/matchs/actions"
 import type { Player } from "@/app/dashboard/effectif/actions"
 import PlayerStatusBadge from "@/components/dashboard/PlayerStatusBadge"
@@ -40,7 +40,10 @@ export default function PreparationClient({ match, players, initialStarters, ini
   const [copied, setCopied]   = useState(false)
   const [pending, startTransition] = useTransition()
 
-  function handlePrint() { window.print() }
+  function handlePrint() {
+    void logPrint(match.id) // [Backoffice — Phase 0] best-effort, ne bloque pas l'impression
+    window.print()
+  }
 
   function copyVenue() {
     if (!match.venue) return

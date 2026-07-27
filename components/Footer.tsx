@@ -11,7 +11,7 @@ import FootboardMark from "@/components/FootboardMark"
 // connecté) est couvert par data-marketing-nav, déjà injecté par
 // TactiqueShellLayout — on réutilise le même attribut sur le footer.
 const HIDE_ON = ["/tactique/digiboard"]
-const HIDE_ON_PREFIXES = ["/dashboard", "/joueur"]
+const HIDE_ON_PREFIXES = ["/dashboard", "/joueur", "/admin"]
 
 const COLS = [
   {

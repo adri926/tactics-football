@@ -1,25 +1,44 @@
+// [Backoffice — Phase 0] Garde-fou coût Gemini : quota vidéo IA en MINUTES / SEMAINE, par plan
+// (plan_limits + account_overrides via lib/plan). Remplace l'ancien plafond fixe 10/jour.
 import { supabase } from "@/lib/supabase"
-import { getClubScope } from "@/lib/scope"
+import { getEffectiveLimit } from "@/lib/plan"
 
-// Garde-fou coût Gemini : plafond quotidien d'analyses vidéo par club. Auth seule ne suffit
-// pas — chaque analyse déclenche un appel Gemini payant. Ajuster au besoin (futur : quota par
-// plan Free/Club branché à Stripe).
-export const MAX_ANALYSES_PER_DAY = 10
+export interface ClubScopeLite { column: "org_id" | "owner_id"; value: string }
 
-export async function checkVideoAnalysisQuota(): Promise<{ ok: true } | { ok: false; error: string }> {
-  const scope = await getClubScope()
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-  const { count } = await supabase
+// Début de la semaine ISO (lundi 00:00 UTC).
+function startOfIsoWeek(d = new Date()): Date {
+  const day = (d.getUTCDay() + 6) % 7 // lundi = 0
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - day))
+}
+
+// Minutes déjà consommées cette semaine par le club (somme des video_analyses.duration_sec).
+export async function getVideoMinutesThisWeek(scope: ClubScopeLite): Promise<number> {
+  const since = startOfIsoWeek().toISOString()
+  const { data } = await supabase
     .from("video_analyses")
-    .select("id", { count: "exact", head: true })
+    .select("duration_sec")
     .eq(scope.column, scope.value)
     .gte("created_at", since)
+  const sec = (data ?? []).reduce((s, r) => s + (Number(r.duration_sec) || 0), 0)
+  return sec / 60
+}
 
-  if ((count ?? 0) >= MAX_ANALYSES_PER_DAY) {
+// Vérifie qu'une nouvelle analyse de `incomingMinutes` reste sous le quota hebdo du club.
+export async function checkVideoAnalysisQuota(
+  scope: ClubScopeLite,
+  clubId: string,
+  incomingMinutes = 0,
+): Promise<{ ok: true; used: number; limit: number | null } | { ok: false; error: string; used: number; limit: number }> {
+  const { maxValue } = await getEffectiveLimit(clubId, "video_analysis_minutes")
+  const used = await getVideoMinutesThisWeek(scope)
+  if (maxValue === null) return { ok: true, used, limit: null } // illimité (Pro / override)
+
+  if (used + incomingMinutes > maxValue) {
     return {
       ok: false,
-      error: `Limite de ${MAX_ANALYSES_PER_DAY} analyses vidéo par jour atteinte. Réessaie demain.`,
+      error: `Quota d'analyse vidéo atteint (${maxValue} min/semaine). Il renouvelle lundi prochain.`,
+      used, limit: maxValue,
     }
   }
-  return { ok: true }
+  return { ok: true, used, limit: maxValue }
 }

@@ -226,6 +226,37 @@ p, span, li, td, th, label, input, textarea, select {
   }
 }
 
+/* ── Garde-fou mobile : jamais de « mouvement de côté ». overflow-x: clip empêche tout
+   scroll horizontal sans casser les position: sticky (contrairement à overflow: hidden). ── */
+@media (max-width: 767px) {
+  html, body { overflow-x: clip; }
+  .dashboard-main, .page-pad { max-width: 100%; overflow-x: clip; }
+}
+
+/* ── Primitives responsive de liste ─────────────────────────────
+   Rangée "infos + actions" : une seule ligne en desktop, empilée en mobile (les boutons passent
+   SOUS les infos et wrappent). À utiliser à la place des `justifyContent: space-between` inline
+   sur toute carte/ligne de liste — c'est ce qui garantit "aucun mouvement de côté" sur téléphone.
+   IMPORTANT : ne pas remettre display/flex/justify/width en inline sur ces éléments, sinon
+   l'inline écrase la media query. */
+.card-row          { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.card-row__main    { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+.card-row__actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+@media (max-width: 767px) {
+  .card-row          { flex-direction: column; align-items: stretch; }
+  .card-row__actions { width: 100%; flex-wrap: wrap; }
+}
+
+/* Groupe qui wrappe toujours (onglets, pills, boutons secondaires). */
+.cluster { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Grille 2 colonnes en desktop, empilée en 1 colonne sur téléphone (le gap reste inline). */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; }
+@media (max-width: 767px) { .grid-2 { grid-template-columns: 1fr; } }
+
+/* Texte qui tronque au lieu de pousser la largeur (dans un parent en min-width: 0). */
+.truncate { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 /* ── Skeletons de chargement ───────────────────────────────────── */
 @keyframes skeleton-shimmer {
   0%   { background-position: 200% 0; }

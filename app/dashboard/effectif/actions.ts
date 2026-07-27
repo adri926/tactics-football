@@ -6,6 +6,7 @@ import { randomBytes } from "crypto"
 import { revalidatePath } from "next/cache"
 import { supabase } from "@/lib/supabase"
 import { getClubScope } from "@/lib/scope"
+import { logUsageForCurrentClub } from "@/lib/usage"
 import { resend, hasEmailKey, FROM, playerInviteTemplate } from "@/lib/email"
 import type { PhysicalEntry } from "@/types/physical"
 
@@ -79,6 +80,7 @@ export async function createPlayer(
     .insert({ ...parsed.data, owner_id: scope.userId, org_id: scope.orgId })
 
   if (error) return dbError(error)
+  await logUsageForCurrentClub("player_added", { source: "manual" }) // [Backoffice — Phase 0]
   revalidatePath("/dashboard/effectif")
   return { ok: true }
 }
@@ -148,6 +150,7 @@ export async function importPlayers(
   const { error } = await supabase.from("players").insert(toInsert)
   if (error) return dbError(error)
 
+  await logUsageForCurrentClub("player_added", { source: "import", count: toInsert.length }) // [Backoffice — Phase 0]
   revalidatePath("/dashboard/effectif")
   return { ok: true, count: toInsert.length }
 }

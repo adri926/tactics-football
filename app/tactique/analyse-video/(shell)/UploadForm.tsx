@@ -24,12 +24,30 @@ export default function UploadForm(
 
   const MAX_SIZE_MB = 500
 
-  function handleSubmit(formData: FormData) {
+  // Lit la durée d'une vidéo via un <video> off-screen (pour le coût IA + le quota minutes).
+  function readDurationSec(file: File): Promise<number> {
+    return new Promise((resolve) => {
+      const url = URL.createObjectURL(file)
+      const v = document.createElement("video")
+      v.preload = "metadata"
+      const done = (sec: number) => { URL.revokeObjectURL(url); resolve(sec) }
+      v.onloadedmetadata = () => done(Number.isFinite(v.duration) ? Math.round(v.duration) : 0)
+      v.onerror = () => done(0)
+      v.src = url
+    })
+  }
+
+  async function handleSubmit(formData: FormData) {
     setError(null)
     const file = formData.get("video")
     if (file instanceof File && file.size > MAX_SIZE_MB * 1024 * 1024) {
       setError(`Vidéo trop lourde — max ${MAX_SIZE_MB} Mo.`)
       return
+    }
+
+    if (file instanceof File) {
+      const durationSec = await readDurationSec(file)
+      formData.set("durationSec", String(durationSec))
     }
 
     setIsPending(true)

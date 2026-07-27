@@ -350,14 +350,12 @@ export default function MatchsClient({ matches, players, club, availability, act
           ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {upcoming.map(m => (
-              <div key={m.id} style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
+              <div key={m.id} className="card-row" style={{
                 padding: "16px 20px", borderRadius: 10,
                 backgroundColor: "rgba(122,154,130,0.06)",
                 border: "1px solid rgba(122,154,130,0.18)",
-                gap: 12,
               }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1 }}>
+                <div className="card-row__main">
                   <ClubLogo src={clubLogo} name={clubName} size={30} />
                   <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 10, color: "rgba(255,255,255,0.2)" }}>
                     {m.home_away === "home" ? "vs" : "@"}
@@ -380,7 +378,7 @@ export default function MatchsClient({ matches, players, club, availability, act
                     </p>
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <div className="card-row__actions">
                   {(() => {
                     const total = players.filter(p => p.status === "available" && p.email).length
                     const responded = Object.keys(availability[m.id] ?? {}).length
@@ -467,14 +465,12 @@ export default function MatchsClient({ matches, players, club, availability, act
               const resultLabel = win ? "VICTOIRE" : draw ? "NUL" : "DÉFAITE"
 
               return (
-                <div key={m.id} style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                <div key={m.id} className="card-row" style={{
                   padding: "14px 20px", borderRadius: 10,
                   backgroundColor: "var(--bg-card)",
                   border: "1px solid rgba(122,154,130,0.08)",
-                  gap: 12,
                 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
+                  <div className="card-row__main">
                     <ClubLogo src={clubLogo} name={clubName} size={28} />
                     {hasScore && (
                       <span style={{
@@ -505,7 +501,7 @@ export default function MatchsClient({ matches, players, club, availability, act
                       </p>
                     </div>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div className="card-row__actions">
                     {hasScore ? (
                       <span style={{
                         fontFamily: "var(--font-mono), monospace",
