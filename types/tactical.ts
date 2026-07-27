@@ -11,6 +11,8 @@ export interface Pion {
   x: number // position sur le terrain, 0-100
   y: number // position sur le terrain, 0-100
   label: string // initiale ou numéro affiché sur le pion
+  dirX?: number // vecteur unitaire de direction de course (pitch control), optionnel
+  dirY?: number
 }
 
 export type DrawingType = "fleche" | "fleche-tirets" | "fleche-courbe" | "crayon" | "zone" | "texte"

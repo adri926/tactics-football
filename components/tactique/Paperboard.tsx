@@ -7,9 +7,18 @@ import BallToken from "@/components/pitch/BallToken"
 import FormationPanel from "./FormationPanel"
 import DrawingCanvas, { type Tool } from "./DrawingCanvas"
 import Toolbar from "./Toolbar"
+import PitchControlOverlay from "./PitchControlOverlay"
+import PitchControlPanel from "./PitchControlPanel"
 import { FORMATIONS, mirrorY } from "@/lib/formations"
+import {
+  computePitchControl, surfaceControlPercent, detectOverloadZones,
+  PITCH_WIDTH_M, PITCH_LENGTH_M,
+  type PitchControlGrid, type PlayerPosition, type OverloadZone,
+} from "@/lib/tactics/pitch-control"
 import { saveTacticalBoard, updateTacticalBoard, createShareLink } from "@/app/tactique/digiboard/actions"
 import type { Drawing, Pion, TacticalBoard, TacticalMode, TacticalTeam } from "@/types/tactical"
+
+const PITCH_CONTROL_DEBOUNCE_MS = 180
 
 const DEFAULT_FORMATION_A = "4-3-3"
 const DEFAULT_FORMATION_B = "4-4-2"
@@ -154,6 +163,13 @@ export default function Paperboard({ initialBoards = [] }: Props) {
   const [ball, setBall] = useState({ x: 50, y: 50 })
   const [mode, setMode] = useState<TacticalMode>("preparation")
 
+  // Pitch control — désactivé par défaut pour ne pas surcharger l'outil gratuit
+  const [showPitchControl, setShowPitchControl] = useState(false)
+  const [pitchControlGrid, setPitchControlGrid] = useState<PitchControlGrid | null>(null)
+  const [pitchControlSurface, setPitchControlSurface] = useState<{ teamA: number; teamB: number } | null>(null)
+  const [pitchControlZones, setPitchControlZones] = useState<OverloadZone[]>([])
+  const pitchControlTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   // Outils de dessin
   const [tool, setTool] = useState<Tool>("curseur")
   const [color, setColor] = useState(DEFAULT_COLOR)
@@ -203,6 +219,33 @@ export default function Paperboard({ initialBoards = [] }: Props) {
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current) }
   }, [savedBoardId, boardName, formationA, formationB, pions, drawings, mode])
 
+  // Recalcul débouncé du pitch control — uniquement quand le toggle est actif,
+  // pour ne jamais payer ce coût de calcul dans l'usage gratuit courant du paperboard
+  useEffect(() => {
+    if (!showPitchControl) {
+      setPitchControlGrid(null)
+      setPitchControlSurface(null)
+      setPitchControlZones([])
+      return
+    }
+    if (pitchControlTimer.current) clearTimeout(pitchControlTimer.current)
+    pitchControlTimer.current = setTimeout(() => {
+      const players: PlayerPosition[] = pions.map(p => ({
+        id: p.id,
+        x: (p.x / 100) * PITCH_WIDTH_M,
+        y: (p.y / 100) * PITCH_LENGTH_M,
+        team: p.team,
+        dirX: p.dirX,
+        dirY: p.dirY,
+      }))
+      const grid = computePitchControl(players)
+      setPitchControlGrid(grid)
+      setPitchControlSurface(surfaceControlPercent(grid))
+      setPitchControlZones(detectOverloadZones(players))
+    }, PITCH_CONTROL_DEBOUNCE_MS)
+    return () => { if (pitchControlTimer.current) clearTimeout(pitchControlTimer.current) }
+  }, [showPitchControl, pions])
+
   const changeFormation = useCallback((team: TacticalTeam, formationId: string) => {
     if (team === "A") setFormationA(formationId)
     else setFormationB(formationId)
@@ -212,6 +255,10 @@ export default function Paperboard({ initialBoards = [] }: Props) {
 
   const updatePionPosition = useCallback((id: string, x: number, y: number) => {
     setPions(prev => prev.map(p => p.id === id ? { ...p, x, y } : p))
+  }, [])
+
+  const updatePionDirection = useCallback((id: string, dirX: number, dirY: number) => {
+    setPions(prev => prev.map(p => p.id === id ? { ...p, dirX, dirY } : p))
   }, [])
 
   const updateBallPosition = useCallback((x: number, y: number) => {
@@ -364,7 +411,7 @@ export default function Paperboard({ initialBoards = [] }: Props) {
 
       {/* ── Terrain ── */}
       <main className="flex-1 flex items-center justify-center p-3 md:p-6 overflow-hidden">
-        <div className="flex flex-col items-center gap-3">
+        <div className="flex flex-col items-center gap-3 min-w-0 w-full">
           {/* Barre d'outils en flux, au-dessus du cadre — ne couvre jamais la pelouse */}
           <Toolbar
             tool={tool} onToolChange={setTool}
@@ -374,6 +421,8 @@ export default function Paperboard({ initialBoards = [] }: Props) {
             canRedo={drawState.future.length > 0}
             onUndo={undo} onRedo={redo}
             onClear={clearDrawings}
+            showPitchControl={showPitchControl}
+            onTogglePitchControl={() => setShowPitchControl(v => !v)}
           />
 
           <div
@@ -385,6 +434,9 @@ export default function Paperboard({ initialBoards = [] }: Props) {
             }}
           >
             <Terrain />
+            {showPitchControl && (
+              <PitchControlOverlay grid={pitchControlGrid} containerRef={containerRef} />
+            )}
             {pions.map(pion => (
               <PionPlayer
                 key={pion.id}
@@ -392,6 +444,10 @@ export default function Paperboard({ initialBoards = [] }: Props) {
                 x={pion.x} y={pion.y} team={pion.team}
                 containerRef={containerRef}
                 onPositionUpdate={updatePionPosition}
+                showDirectionHandle={showPitchControl}
+                dirX={pion.dirX}
+                dirY={pion.dirY}
+                onDirectionUpdate={updatePionDirection}
               />
             ))}
             <BallToken
@@ -478,6 +534,13 @@ export default function Paperboard({ initialBoards = [] }: Props) {
             })}
           </div>
         </div>
+
+        {showPitchControl && (
+          <>
+            <PitchControlPanel surface={pitchControlSurface} zones={pitchControlZones} />
+            <div style={{ height: 1, backgroundColor: "rgba(122,154,130,0.12)" }} />
+          </>
+        )}
 
         <div style={{ height: 1, backgroundColor: "rgba(122,154,130,0.12)" }} />
 

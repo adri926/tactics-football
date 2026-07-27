@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Footboard — Simulateur mobile</title>
+  <style>
+    :root { --bg:#0f0e0a; --panel:#1b1a13; --border:rgba(122,154,130,0.28); --sauge:#7A9A82; --text:#F2F1EA; --muted:rgba(255,255,255,0.45); }
+    * { box-sizing:border-box; }
+    html,body { margin:0; height:100%; overflow:hidden; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    .app { display:flex; flex-direction:column; height:100vh; }
+    header {
+      display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+      padding:12px 20px; border-bottom:1px solid var(--border); background:var(--panel); z-index:5;
+    }
+    .brand { font-weight:800; letter-spacing:.02em; }
+    .brand span { color:var(--sauge); }
+    .group { display:flex; align-items:center; gap:6px; }
+    .lbl { font-size:10px; text-transform:uppercase; letter-spacing:.14em; color:var(--muted); margin-right:2px; }
+    button, select, input {
+      font:inherit; font-size:12px; color:var(--text); background:#26241b;
+      border:1px solid var(--border); border-radius:8px; padding:7px 11px; cursor:pointer;
+    }
+    button.active { background:var(--sauge); color:#17160f; border-color:var(--sauge); font-weight:700; }
+    input { cursor:text; min-width:200px; }
+    .dims { font-size:11px; color:var(--muted); }
+
+    .stage { flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden; padding:20px; }
+    /* Le device garde sa taille RÉELLE (px device) ; on le met juste à l'échelle pour tenir à l'écran. */
+    .phone {
+      position:relative; background:#000; border-radius:54px; padding:13px;
+      box-shadow:0 30px 90px rgba(0,0,0,.65), 0 0 0 2px rgba(255,255,255,.05) inset;
+      transform-origin:center center; flex:none;
+    }
+    .screen {
+      position:relative; border-radius:42px; overflow:hidden; background:#17160f;
+      display:flex; flex-direction:column;
+    }
+    /* Barre de statut iOS : occupe la safe-area haute pour que le contenu ne soit jamais rogné. */
+    .statusbar {
+      height:47px; flex:none; display:flex; align-items:center; justify-content:space-between;
+      padding:0 26px; color:#fff; font-size:13px; font-weight:600; letter-spacing:.02em;
+      background:transparent; position:relative; z-index:3;
+    }
+    .statusbar .icons { display:flex; align-items:center; gap:6px; font-size:12px; }
+    .notch {
+      position:absolute; top:0; left:50%; transform:translateX(-50%);
+      width:38%; height:30px; background:#000; border-radius:0 0 20px 20px; z-index:4;
+    }
+    iframe { flex:1; width:100%; border:0; display:block; background:#17160f; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand">FOOT<span>BOARD</span> · Simulateur</div>
+
+      <div class="group">
+        <span class="lbl">Modèle</span>
+        <button data-w="375" data-h="667">SE</button>
+        <button data-w="390" data-h="844" class="active">14</button>
+        <button data-w="393" data-h="852">15 Pro</button>
+        <button data-w="430" data-h="932">Pro Max</button>
+      </div>
+
+      <div class="group">
+        <span class="lbl">Page</span>
+        <select id="route">
+          <option value="/dashboard">Tableau de bord</option>
+          <option value="/dashboard/effectif">Effectif</option>
+          <option value="/dashboard/matchs">Matchs</option>
+          <option value="/dashboard/entrainements">Entraînements</option>
+          <option value="/dashboard/club">Mon club</option>
+          <option value="/dashboard/club/cotisations">Cotisations</option>
+          <option value="/tactique/analyse-video">Analyse vidéo</option>
+          <option value="/tactique/digiboard" selected>Digiboard</option>
+          <option value="/joueur">Espace joueur</option>
+        </select>
+      </div>
+
+      <div class="group">
+        <input id="path" placeholder="/chemin personnalisé" />
+        <button id="go">Aller</button>
+        <button id="reload">↻</button>
+      </div>
+
+      <span class="dims" id="dims">390 × 844</span>
+    </header>
+
+    <div class="stage">
+      <div class="phone" id="phone">
+        <div class="notch"></div>
+        <div class="screen" id="screen">
+          <div class="statusbar">
+            <span id="clock">9:41</span>
+            <span class="icons">￭￭￭ ￭ ▮</span>
+          </div>
+          <iframe id="frame" src="/tactique/digiboard"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const phone  = document.getElementById('phone');
+    const screen = document.getElementById('screen');
+    const frame  = document.getElementById('frame');
+    const dims   = document.getElementById('dims');
+    const route  = document.getElementById('route');
+    const path   = document.getElementById('path');
+    const stage  = document.querySelector('.stage');
+
+    let W = 390, H = 844;
+
+    // Le device conserve ses dimensions réelles (fidèle au code) ; on le rétrécit seulement pour
+    // qu'il tienne entièrement dans la fenêtre — jamais d'agrandissement au-delà de 100%.
+    function fit() {
+      phone.style.transform = 'scale(1)';
+      const availH = stage.clientHeight - 24;
+      const availW = stage.clientWidth  - 24;
+      const s = Math.min(1, availH / phone.offsetHeight, availW / phone.offsetWidth);
+      phone.style.transform = 'scale(' + s + ')';
+    }
+
+    function setSize(w, h) {
+      W = w; H = h;
+      screen.style.width  = w + 'px';
+      screen.style.height = h + 'px';
+      dims.textContent = w + ' × ' + h;
+      fit();
+    }
+
+    document.querySelectorAll('button[data-w]').forEach(b => {
+      b.addEventListener('click', () => {
+        document.querySelectorAll('button[data-w]').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        setSize(+b.dataset.w, +b.dataset.h);
+      });
+    });
+
+    function go(url) { if (url) frame.src = url; }
+    route.addEventListener('change', () => go(route.value));
+    document.getElementById('go').addEventListener('click', () => go(path.value.trim() || route.value));
+    document.getElementById('reload').addEventListener('click', () => { frame.src = frame.src; });
+    path.addEventListener('keydown', e => { if (e.key === 'Enter') go(path.value.trim()); });
+
+    window.addEventListener('resize', fit);
+    // Horloge iOS réaliste
+    const clock = document.getElementById('clock');
+    setInterval(() => {
+      const d = new Date();
+      clock.textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
+    }, 1000);
+
+    setSize(390, 844);
+  </script>
+</body>
+</html>

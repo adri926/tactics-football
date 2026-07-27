@@ -299,6 +299,15 @@ p, span, li, td, th, label, input, textarea, select {
 .print-sheet { display: none; }
 
 /* ── Digiboard mobile ──────────────────────────────────────────────────────── */
+/* Barre d'outils : scrollbar masquée (esprit mat) — le scroll horizontal tactile
+   reste fonctionnel, seule la barre de défilement visible disparaît. */
+.digiboard-toolbar-scroll {
+  scrollbar-width: none;
+}
+.digiboard-toolbar-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 .digiboard-terrain {
   height: min(calc(100vh - 8.5rem), calc((100vw - 18rem) * 1.544));
   aspect-ratio: 680 / 1050;
