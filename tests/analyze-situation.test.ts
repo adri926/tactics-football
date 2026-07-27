@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { hashPositions, TACTICAL_TAGS } from "@/lib/tactics/analyze-situation"
+import { hashPositions, TACTICAL_TAGS, parseEmbedding } from "@/lib/tactics/analyze-situation"
 import type { Pion } from "@/types/tactical"
 
 const pions: Pion[] = [
@@ -29,6 +29,22 @@ describe("hashPositions", () => {
 
   it("change si le ballon bouge significativement", () => {
     expect(hashPositions(pions, { x: 41, y: 50 })).not.toBe(hashPositions(pions, ball))
+  })
+})
+
+describe("parseEmbedding", () => {
+  it("passe un tableau JS natif tel quel", () => {
+    expect(parseEmbedding([0.1, 0.2, 0.3])).toEqual([0.1, 0.2, 0.3])
+  })
+
+  it("parse la représentation texte pgvector", () => {
+    expect(parseEmbedding("[0.1,0.2,0.3]")).toEqual([0.1, 0.2, 0.3])
+  })
+
+  it("renvoie null pour une valeur invalide", () => {
+    expect(parseEmbedding("pas-un-json")).toBeNull()
+    expect(parseEmbedding(null)).toBeNull()
+    expect(parseEmbedding(42)).toBeNull()
   })
 })
 

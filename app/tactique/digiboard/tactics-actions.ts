@@ -8,7 +8,7 @@ import { getClubScope } from "@/lib/scope"
 import { logUsage } from "@/lib/usage"
 import { checkTacticalAnalysisQuota } from "@/lib/rate-limit"
 import { canonicalizeAttackDirection } from "@/lib/tactics/normalize-situation"
-import { analyzeSituationWithClaude, embedDescription, hashPositions } from "@/lib/tactics/analyze-situation"
+import { analyzeSituationWithClaude, embedDescription, hashPositions, parseEmbedding } from "@/lib/tactics/analyze-situation"
 
 const PionSchema = z.object({
   id:     z.string().max(8),
@@ -108,7 +108,7 @@ export async function analyzeTacticalSituation(
     description = cachedRow.ai_description as string
     tags = (cachedRow.ai_tags as string[]) ?? []
     principle = (cachedRow.ai_principle as string) ?? ""
-    embedding = cachedRow.embedding as number[] | null
+    embedding = parseEmbedding(cachedRow.embedding)
   } else {
     if (clubId) {
       const quota = await checkTacticalAnalysisQuota(scope, clubId)

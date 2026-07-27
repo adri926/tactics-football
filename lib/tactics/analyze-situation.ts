@@ -120,3 +120,20 @@ export async function embedDescription(text: string): Promise<number[]> {
   if (!values) throw new Error("Gemini n'a pas renvoyé d'embedding.")
   return values
 }
+
+// Relire une colonne `vector` via PostgREST peut renvoyer soit un tableau JS natif, soit sa
+// représentation texte pgvector ("[0.1,0.2,...]") selon les versions — on gère les deux plutôt
+// que de supposer une forme précise jamais vérifiée en conditions réelles (pas de clé API pour
+// tester le aller-retour complet au moment où ce code est écrit).
+export function parseEmbedding(value: unknown): number[] | null {
+  if (Array.isArray(value)) return value as number[]
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value)
+      return Array.isArray(parsed) ? parsed : null
+    } catch {
+      return null
+    }
+  }
+  return null
+}
